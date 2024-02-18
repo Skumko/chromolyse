@@ -13,3 +13,15 @@ read_excel <- function(filepath, sheetname = 2){
   snv_file <- readxl::read_excel(filepath, sheet = sheetname);
   return(snv_file);
 }
+
+
+#' Fill missing CNV segments
+#'
+#' @param cnv_file a source file containing CNV information.
+#'
+#' @return a modified CNV file
+#' @export
+#'
+fill_missing_cnv_segments <- function(cnv_file){
+
+}

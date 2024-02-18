@@ -25,7 +25,7 @@ cluster_ckmeans <- function(positions, k_upper = 20){
 #' temp1 <- <function_name>(50);
 #' temp2 <- <function_name>( c(50, 63, 23) );
 #' @export
-cluster_data <- function(dataset, algorithm='ckmeans', grouping_column='Chr.x', position_column= 'Position.x'){
+cluster_data <- function(dataset, algorithm='ckmeans', grouping_column='Chr.x', position_column='Position.x'){
 
   switch (algorithm,
           'ckmeans' = {

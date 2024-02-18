@@ -1,11 +1,10 @@
 Package: chromolyse
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Chromotripsis and Chromoplexy analysis
+Version: 0.0.1
+Author@R: 
+    person("Pavol", "Belej", , "xbelej@stuba.sk", role = c("aut", "cre"))
+Description: Functions to support more efficient and complex analysis of tumour genome data with focus on chromotripsis and chromoplexy events.  
+License: use_mit_license()
 Encoding: UTF-8
 LazyData: true

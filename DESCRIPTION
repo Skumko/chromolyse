@@ -2,9 +2,19 @@ Package: chromolyse
 Type: Package
 Title: Chromotripsis and Chromoplexy analysis
 Version: 0.0.1
-Author@R: 
-    person("Pavol", "Belej", , "xbelej@stuba.sk", role = c("aut", "cre"))
+Author: Pavol Belej
+Maintainer: The package maintainer <xbelej@stuba.sk>
 Description: Functions to support more efficient and complex analysis of tumour genome data with focus on chromotripsis and chromoplexy events.  
-License: use_mit_license()
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 7.3.1
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Imports: 
+    circlize,
+    Ckmeans.1d.dp,
+    dplyr,
+    readxl,
+    viridis

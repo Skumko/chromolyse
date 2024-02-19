@@ -17,7 +17,3 @@ data.table with the contents of the loaded excel file.
 \description{
 Function is a wrapper for readxl::read_excel function.
 }
-\examples{
-temp1 <- read_excel("./my_excel_file.xlsx");
-temp1 <- read_excel("./my_excel_file.xls", sheetname=3);
-}

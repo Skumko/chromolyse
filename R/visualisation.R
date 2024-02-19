@@ -14,19 +14,19 @@ visualise_circos <- function(sv_data, sv_focus="all", chromosome_selection = NUL
   distinctColorPalette <- function(n) {
     rainbow(n, s = 1, v = 1, start = 0, end = 1)
   }
-  n <- max(data$Cluster.x, data$Cluster.y)
-  color_vector <- setNames(distinctColorPalette(n), c(1:n))
+  n <- max(sv_data$Cluster.x, sv_data$Cluster.y)
+  color_vector <- stats::setNames(distinctColorPalette(n), c(1:n))
 
   # define colors for the CNV track
   cnv_colors=c("blue", "blue", "red", "red")
 
   #filter data based on focus parameter
   if (sv_focus == "itx") {
-    soma <- sv_data %>% filter(Chr.x == Chr.y)
+    soma <- sv_data %>% dplyr::filter(sv_data$Chr.x == sv_data$Chr.y)
 
   }
   else if(sv_focus == "ctx"){
-    soma <- sv_data %>% filter(Chr.x != Chr.y)
+    soma <- sv_data %>% dplyr::filter(sv_data$Chr.x != sv_data$Chr.y)
 
   }
   else if (sv_focus == "all"){
@@ -38,22 +38,22 @@ visualise_circos <- function(sv_data, sv_focus="all", chromosome_selection = NUL
 
   #filter data based on chromosome selection
   if (!is.null(chromosome_selection)) {
-    soma <- soma %>% filter(Chr.x %in% chromosome_selection & Chr.y %in% chromosome_selection)
+    soma <- soma %>% dplyr::filter(soma$Chr.x %in% chromosome_selection & soma$Chr.y %in% chromosome_selection)
   }
 
   # create Circos
-  circos.initializeWithIdeogram()
+  circlize::circos.initializeWithIdeogram()
   # if specified, use CNV data for its own track
   if(!is.null(cnv_data)){
-    circos.genomicTrack(nexus_adj_list,track.height = 0.05, bg.lty = 0, stack = TRUE, panel.fun = function(region, value, ...) {
-      i = getI(...)
-      circos.genomicLines(region, value, col = cnv_colors[i], lwd = 1.5,...)
+    circlize::circos.genomicTrack(nexus_adj_list,track.height = 0.05, bg.lty = 0, stack = TRUE, panel.fun = function(region, value, ...) {
+      i = circlize::getI(...)
+      circlize::circos.genomicLines(region, value, col = cnv_colors[i], lwd = 1.5,...)
     })
   }
 
   # add links to represent translocations
   for (i in 1:nrow(all_trans)) {
-    circos.link(
+    circlize::circos.link(
       paste("chr", all_trans$Chr.x[i], sep = ""),
       all_trans$Position.x[i],
       paste("chr", all_trans$Chr.y[i], sep = ""),

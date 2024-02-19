@@ -1,64 +1,26 @@
-# Define Node class using S3
-#' Title
-#'
-#' @param id
-#'
-#' @return
-#' @export
-#'
-#' @examples
+
 Node <- function(id) {
   neighbors <- list()
-  class(node) <- "Node"
   node <- list(id = id, neighbors = neighbors)
+  class(node) <- "Node"
   return(node)
 }
 
-# Define Edge class using S3
-#' Title
-#'
-#' @param from
-#' @param to
-#' @param info
-#'
-#' @return
-#' @export
-#'
-#' @examples
 Edge <- function(from, to, info) {
-  class(edge) <- "Edge"
   edge <- list(from = from, to = to, info = info)
+  class(edge) <- "Edge"
   return(edge)
 }
 
-# Define Graph class using S3
-#' Title
-#'
-#' @param directed
-#'
-#' @return
-#' @export
-#'
-#' @examples
+
 Graph <- function(directed = FALSE) {
   nodes <- list()
-  class(graph) <- "Graph"
   graph <- list(nodes = nodes, edges = list(), directed = directed)
+  class(graph) <- "Graph"
   return(graph)
 }
 
-# Add method to add edge for Node class
-#' Title
-#'
-#' @param from
-#' @param to
-#' @param info
-#' @param graph
-#'
-#' @return
-#' @export
-#'
-#' @examples
+
 add_edge <- function(from, to, info, graph) {
   from_id <- from$id
   to_id <- to$id
@@ -71,16 +33,7 @@ add_edge <- function(from, to, info, graph) {
   }
 }
 
-# Add method to add node for Graph class
-#' Title
-#'
-#' @param graph
-#' @param id
-#'
-#' @return
-#' @export
-#'
-#' @examples
+
 add_node <- function(graph, id) {
   if (!(id %in% sapply(graph$nodes, function(node) node$id))) {
     node <- Node(id)
@@ -90,15 +43,6 @@ add_node <- function(graph, id) {
   }
 }
 
-# Function to create graph from data frame
-#' Title
-#'
-#' @param data
-#'
-#' @return
-#' @export
-#'
-#' @examples
 create_graph_from_data <- function(data) {
   graph <- Graph(directed = TRUE)
 
@@ -143,10 +87,3 @@ create_graph_from_data <- function(data) {
 
   return(graph)
 }
-
-# Example usage
-# Assuming 'data' is your data frame
-# data <- read.csv("your_data.csv")
-
-# Create graph from data
-# graph <- create_graph_from_data(data)

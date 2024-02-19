@@ -8,7 +8,8 @@ cluster_data(
   dataset,
   algorithm = "ckmeans",
   grouping_column = "Chr.x",
-  position_column = "Position.x"
+  start_position_column = "Position.x",
+  end_position_column = "Position.y"
 )
 }
 \arguments{
@@ -18,15 +19,13 @@ cluster_data(
 
 \item{grouping_column}{Name of the column which contains chromosome assignments. This column will be used for grouping.}
 
-\item{position_column}{Name of the column which contains positions on the chromosome. This will be used for clustering directly.}
+\item{start_position_column}{Name of the column which contains starting positions of translocations on the chromosome. These will be used for clustering.}
+
+\item{end_position_column}{Name of the column which contains end positions of translocations on the chromosome. These will be used for clustering.}
 }
 \value{
 original dataset with cluster labels in Cluster.x column
 }
 \description{
 Function performs clustering of SV data chromosome-wise using selected algorithm.
-}
-\examples{
-temp1 <- <function_name>(50);
-temp2 <- <function_name>( c(50, 63, 23) );
 }

@@ -6,22 +6,22 @@
 \usage{
 visualise_circos(
   sv_data,
-  sv_focus = "all",
-  chromosome_selection = NULL,
   cnv_data = NULL,
-  cnv_track_style = "trim"
+  chromosome_selection = NULL,
+  sv_focus = "all",
+  cnv_track_style = "full"
 )
 }
 \arguments{
 \item{sv_data}{somatic variants (SV) source data file. Format of the data should be:}
 
-\item{sv_focus}{the subset of translocations to focus on: "itx", "ctx" or "all".}
+\item{cnv_data}{An optional data source containing CNV information. Used to create a separate CNV track.}
 
 \item{chromosome_selection}{an optional vector containing a selection of chromosomes to be included in the visualisation.}
 
-\item{cnv_data}{An optional data source containing CNV information. Used to create a separate CNV track.}
+\item{sv_focus}{the subset of translocations to focus on: "itx", "ctx" or "all".}
 
-\item{cnv_track_style}{the type of CNV track visualisation: "trim" is default and will not display the baseline (shown in black). Use "full" to include a baseline.}
+\item{cnv_track_style}{the type of CNV track visualisation: "full" is default and will display the CNV baseline event (Allelic imbalance, shown in black). Use "trim" to not include this baseline.}
 }
 \description{
 Create a Circos visualisation

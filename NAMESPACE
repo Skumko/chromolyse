@@ -1,3 +1,5 @@
 exportPattern("^[[:alpha:]]+")
 importFrom(grDevices, "rainbow")
 importFrom(magrittr,"%>%")
+importFrom(stats,"kmeans")
+importFrom("methods", "is")

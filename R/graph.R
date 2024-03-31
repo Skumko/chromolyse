@@ -24,7 +24,7 @@ setClass("Node",
            chromosome = "character",
            cluster = "integer",
            breakpoints = "list",
-           neighbours = "list",
+           neighbours = "list"
          )
 )
 setMethod("initialize", "Node", function(.Object, chromosome, cluster) {
@@ -95,6 +95,19 @@ setMethod("initialize", "Edge", function(.Object, source_breakpoint_id, destinat
 })
 
 
+containsEdge <- function(edge_list, target_edge){
+  contains_edge <- FALSE
+  for(edge in edge_list){
+    if(edge@source_breakpoint_id == target_edge@source_breakpoint_id &
+       edge@destination_breakpoint_id == target_edge@destination_breakpoint_id &
+       edge@edge_type == target_edge@edge_type){
+      contains_edge <- TRUE
+      break
+    }
+  }
+  return(contains_edge)
+}
+
 setClass("Graph",
          representation(
            nodes = "list",
@@ -151,13 +164,24 @@ setMethod("addEdge", "Graph", function(object, edge) {
 # Method to check if a node with specific ID exists in the graph, returning node or FALSE
 setGeneric("hasNode", function(object, node_id) standardGeneric("hasNode"))
 setMethod("hasNode", "Graph", function(object, node_id) {
-  # Find nodes with matching ID
-  matching_nodes <- sapply(object@nodes, function(n) if (n@ID == node_id) n else NULL)
-  # Return the first matching node or NULL
-  if(length(matching_nodes) == 0)
-    return(NULL)
-  possible_node <- matching_nodes[[1]]
-  return(possible_node)
+  found_node <- NULL
+  for (node in object@nodes) {
+    if (node@ID == node_id) {
+      found_node <- node
+      break
+    }
+  }
+  return(found_node)
+})
+
+setGeneric("updateNode", function(object, node_id, new_node) standardGeneric("updateNode"))
+setMethod("updateNode", "Graph", function(object, node_id, new_node) {
+  index <- which(sapply(graph, function(x) x@ID == node_id))
+    if (length(index) > 0) {
+      object[[index]] <- new_node
+    } else {
+      stop("Error: Node not found in the graph")
+    }
 })
 
 createGraphFromDataframe <- function(dataframe) {
@@ -196,19 +220,16 @@ createGraphFromDataframe <- function(dataframe) {
 
     #find whether Nodes already exist in graph
     x_existing <- hasNode(graph, x_node_id)
-    y_existing <- hasNode(graph, y_node_id)
-
-
     if (is.null(x_existing)) {
       new_x_node = new("Node", chromosome = x_chromosome, cluster = x_cluster)
       new_x_node <- addBreakpoint(new_x_node, x_breakpoint)
       # add neighbour only to the X (source) node since we have digraph
-      new_x_node <- addNeighbour(new_x_node, y_node_id)
+      new_x_node <- addNeighbour(new_x_node, y_breakpoint_id)
       graph <- addNode(graph, new_x_node)
     }
     else{
       x_existing@breakpoints[[length(x_existing@breakpoints) + 1]] <- x_breakpoint
-      x_existing <- addNeighbour(x_existing, y_node_id)
+      x_existing <- addNeighbour(x_existing, y_breakpoint_id)
       for (i in seq_along(graph@nodes)) {
         if (graph@nodes[[i]]@ID == x_existing@ID) {
           graph@nodes[[i]] <- x_existing
@@ -216,6 +237,8 @@ createGraphFromDataframe <- function(dataframe) {
         }
       }
     }
+
+    y_existing <- hasNode(graph, y_node_id)
     if (is.null(y_existing)) {
       new_y_node = new("Node", chromosome = y_chromosome, cluster = y_cluster)
       new_y_node <- addBreakpoint(new_y_node, y_breakpoint)
@@ -238,76 +261,95 @@ createGraphFromDataframe <- function(dataframe) {
   return(graph)
 }
 
+findClosestNode <- function(edge_list, chromosome, position) {
+  chromosome_filter <- edge_list[sapply(edge_list, function(x) x@source_chromosome == chromosome)]
+  positions_list <- sapply(chromosome_filter, function(n) n@source_position)
+  closest_node <- chromosome_filter[[which.min(abs(positions_list - position))]]@source_node_id
+  return(closest_node)
+}
 
-## Check for the existence of node before adding
-#if ("Node1" %in% names(graph$nodes)) {
-#  stop("Node with the same identifier already exists.")
-#} else {
-#  graph$add_node(node1)
-#}
-#
-## Check for the existence of edge before adding
-#if ("Node1" %in% sapply(graph$edges, `[[`, "source") || "Node2" %in% sapply(graph$edges, `[[`, "destination")) {
-#  stop("Edge with the same source or destination already exists.")
-#} else {
-#  graph$add_edge(edge1)
-#}
+getBreakpointByID <- function(graph, breakpoint){
+  if (!is.character(breakpoint)) {
+    warning("Invalid input. Expected a character.")
+    return(NULL)
+  }
 
-#  # Method to add a node to the graph
-#  graph$add_node <- function(node) {
-#    if (node$identifier %in% names(graph$nodes)) {
-#      stop("Node with the same identifier already exists.")
-#    } else {
-#      graph$nodes[[node$identifier]] <- node
-#    }
-#  }
-#
-#  # Method to add an edge to the graph
-#  graph$add_edge <- function(edge) {
-#    if (edge$source %in% sapply(graph$edges, `[[`, "source") || edge$destination %in% sapply(graph$edges, `[[`, "destination")) {
-#      stop("Edge with the same source or destination already exists.")
-#    } else {
-#      graph$edges <- c(graph$edges, list(edge))
-#    }
-#  }
-#
-#  return(graph)
-#}
+  split_id <- strsplit(breakpoint, "_")[[1]]
+  node_id <- paste(split_id[1], split_id[2], sep = "_")
 
+  node <- NULL
+  for (n in graph@nodes) {
+    if (n@ID == node_id) {
+      node <- n
+      break
+    }
+  }
 
-## Define the Depth-First Search function
-#dfs <- function(graph, node, visited_positions = NULL) {
-#  # Check if all positions of the current node have been visited
-#  all_positions_visited <- length(node$positions) == length(visited_positions)
-#
-#  # If all positions have been visited, mark the node as visited
-#  if (all_positions_visited) {
-#    node$visited <- TRUE
-#    cat("Visited node:", node$identifier, "\n")
-#
-#    # Traverse neighboring nodes
-#    for (edge in graph$edges) {
-#      if (edge$source == node$identifier) {
-#        destination_node <- graph$nodes[[edge$destination]]
-#
-#        # Check if the destination node has any unvisited positions
-#        unvisited_positions <- setdiff(destination_node$positions, visited_positions)
-#
-#        # If there are unvisited positions, recursively visit the node with them
-#        if (length(unvisited_positions) > 0) {
-#          dfs(graph, destination_node, c(visited_positions, unvisited_positions))
-#        }
-#      }
-#    }
-#  }
-#}
-#
-## Example usage:
-## Assuming you have already created the graph and added nodes and edges#
-#
-## Choose a starting node to begin the DFS traversal
-#start_node <- graph$nodes[["Node1"]]
-#
-## Perform DFS traversal from the starting node
-#dfs(graph, start_node)
+  if (!is.null(node)) {
+    for (b in node@breakpoints) {
+      if (b@ID == breakpoint) {
+        return(b)
+        break
+      }
+    }
+    warning("Breakpoint not found for ID ", breakpoint)
+  } else {
+    warning("Node not found for ID ", node_id)
+  }
+}
 
+depthFirstSearch <- function(graph, curr_node_id, curr_path = NULL, depth = 0, closest_node_limit = NULL) {
+
+  # initialize path if empty
+  if (is.null(curr_path)) {
+    curr_path <- list()
+  }
+
+  # TODO remove
+  if (depth >= 10) {
+    return(curr_path)
+  }
+
+  # extract all CTX edges
+  ctx_neighbour_edges <- graph@edges[sapply(graph@edges, function(x) {
+    x@source_node_id == curr_node_id && x@edge_type == "CTX"
+  })]
+
+  # extract all ITX edges
+  itx_neighbour_edges <- graph@edges[sapply(graph@edges, function(x) {
+    x@source_node_id == curr_node_id && x@edge_type == "ITX"
+  })]
+
+  # define the recursive approach for traversing edges
+  process_edges <- function(edges) {
+    for (edge in edges) {
+      position <- edge@source_breakpoint_id
+      # if the current edge has been visited, skip
+      if (containsEdge(curr_path, edge)) next
+
+      # target_chromosome <- edge@destination_chromosome
+      # target_position <- edge@destination_position
+      # next_node_id <- find_closest_node(graph@edges, target_chromosome, target_position)
+
+      # add edge to path
+      curr_path <- c(curr_path, edge)
+
+      # if the closeness limit is defined and
+      if(!is.null(closest_node_limit)){
+        # the translocation is ITX, skip if
+        if(edge@source_chromosome == edge@destination_chromosome){
+          # the distance of the jump is too great base on the closeness limit (to be considered a part of chain)
+          if(edge@destination_position > position + closest_node_limit | edge@destination_position < position - closest_node_limit) next
+        }
+      }
+      #cat("->", next_node_id, "\n")
+      new_depth <- depth + 1
+      curr_path <- depthFirstSearch(graph, edge@destination_node_id, curr_path, depth = new_depth)
+    }
+    return(curr_path)
+  }
+
+  curr_path <- process_edges(ctx_neighbour_edges)
+  curr_path <- process_edges(itx_neighbour_edges)
+  return(curr_path)
+}

@@ -87,7 +87,7 @@ clusterData <- function(dataset, algorithm='ckmeans', max_k = 20){
 
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
-              dplyr::mutate(Cluster = .cluster_ckmeans(Position, k_upper = max_k))
+              dplyr::mutate(Cluster = .clusterCkmeans(Position, k_upper = max_k))
 
           },
           'kmeans++' = {
@@ -97,7 +97,7 @@ clusterData <- function(dataset, algorithm='ckmeans', max_k = 20){
 
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
-              dplyr::mutate(Cluster = .cluster_ckmeans(Position, k_upper = max_k))
+              dplyr::mutate(Cluster = .clusterCkmeans(Position, k_upper = max_k))
 
           },
           'default' = {

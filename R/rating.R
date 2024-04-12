@@ -38,7 +38,7 @@ ratingArray <- array(NA, dim = c(length(encodeValues), length(encodeValues), len
                       dimnames = list(encodeValues, encodeValues, regionValues))
 
 # TODO assign path ratings
-
+#ratingArray <- read.csv("./misc/Data/ratings.csv")
 
 searchGraph <- function(graph){
   traversals <-  list()
@@ -49,75 +49,105 @@ searchGraph <- function(graph){
   return(traversals)
 }
 
-extractAllPaths <- function(graph, dfs_traversal){
-  dfs_traversal <- path
-  paths <-  list()
-  current_path <-  list()
-  prev_node <-  dfs_traversal[[1]]@source_node_id
-  curr_node <-  NULL
-  origin_node <- prev_node
-  for(edge in dfs_traversal){
-    curr_node <-  edge@source_node_id
-    if(curr_node == prev_node){
-      current_path <- append(current_path, edge@source_breakpoint_id)
-      current_path <- append(current_path, edge@destination_breakpoint_id)
-      prev_node <-  edge@destination_node_id
-    }
-    else{
+# extractAllPaths <- function(graph, dfs_traversal){
+#   paths <-  list()
+#   current_path <-  list()
+#   prev_node <-  dfs_traversal[[1]]@source_node_id
+#   curr_node <-  NULL
+#   origin_node <- prev_node
+#   for(edge in dfs_traversal){
+#     curr_node <-  edge@source_node_id
+#     if(curr_node == prev_node){
+#       current_path <- append(current_path, edge@source_breakpoint_id)
+#       current_path <- append(current_path, edge@destination_breakpoint_id)
+#       prev_node <-  edge@destination_node_id
+#     }
+#     else{
+#       paths <- c(paths, list(current_path))
+#       search <- paste0(curr_node,"_")
+#       continue_index <- grep(search, rev(current_path), fixed = T)
+#       #continue_index <- grep(search, current_path)
+#       if (length(continue_index) > 0) {
+#         index <- length(current_path) - continue_index
+#         current_path <- current_path[seq_len(index)]
+#
+#       } else {
+#         stop("This should find some match!!!")
+#         current_path <- current_path
+#       }
+#       current_path <- append(current_path, edge@source_breakpoint_id)
+#       current_path <- append(current_path, edge@destination_breakpoint_id)
+#       prev_node <- edge@destination_node_id
+#     }
+#   }
+#   return(paths)
+# }
+
+extractAllPaths <- function(graph, dfs_traversal) {
+  paths <- list()
+  current_path <- c()
+  prev_node <- dfs_traversal[[1]]@source_node_id
+  for (edge in dfs_traversal) {
+    curr_node <- edge@source_node_id
+    if (curr_node != prev_node) {
       paths <- c(paths, list(current_path))
-      search <- paste0(curr_node,"_")
-      continue_index <- grep(search, rev(current_path), fixed = T)
-      #continue_index <- grep(search, current_path)
+      continue_index <- grep(paste0(curr_node, "_"), rev(current_path), fixed = TRUE)
       if (length(continue_index) > 0) {
         index <- length(current_path) - continue_index
         current_path <- current_path[seq_len(index)]
-
       } else {
         stop("This should find some match!!!")
-        current_path <- current_path
       }
-      current_path <- append(current_path, edge@source_breakpoint_id)
-      current_path <- append(current_path, edge@destination_breakpoint_id)
-      prev_node <- edge@destination_node_id
     }
+    current_path <- c(current_path, edge@source_breakpoint_id, edge@destination_breakpoint_id)
+    prev_node <- edge@destination_node_id
   }
   return(paths)
 }
 
+
 assignPathRating <- function(graph, path){
   ratings <- list()
-  for (i in 1:(length(path) - 1)) {
+  totalRating <- 0
+  for (i in seq(1, length(path), by = 2)) {
     # iterate by two - start and end breakpoints
-    start_breakpoint_id <- path[i]
-    end_breakpoint_id <- path[i + 1]
+    startBreakpointId <- path[[i]]
+    endBreakpointId <- path[[i + 1]]
 
     # find breakpoint objects in graph
-    start_breakpoint <-  getBreakpointByID(start_breakpoint_id)
-    end_breakpoint <-  getBreakpointByID(end_breakpoint_id)
+    startBreakpoint <-  getBreakpointByID(startBreakpointId)
+    endBreakpoint <-  getBreakpointByID(endBreakpointId)
 
-    if(class(start_breakpoint) != "Breakpoint" | class(end_breakpoint) != "Breakpoint"){
+    if(class(startBreakpoint) != "Breakpoint" | class(endBreakpoint) != "Breakpoint"){
       stop("One of the breakpoints not found: ",i)
     }
     # extract Encode and Region values
-    start_encode <-  start_breakpoint@encode
-    start_region <-  start_breakpoint@region
-    end_encode <-  end_breakpoint@encode
-    end_region <-  end_breakpoint@region
+    startEncode <-  startBreakpoint@encode
+    startRegion <-  startBreakpoint@region
+    endEncode <-  endBreakpoint@encode
+    endRegion <-  endBreakpoint@region
 
     # find the rating
-    rating <- ratingArray[start_encode, end_encode, start_region]
+    rating <- ratingArray[startEncode, endEncode]
     ratings <- c(ratings, rating)
+    totalRating <- totalRating + rating
   }
-  return(ratings)
+  return(totalRating)
 }
 
 analyzeGeneChains <- function(source_data){
   graph <- createGraphFromDataframe(source_data)
   traversals <- searchGraph(graph)
   allPaths <- list()
+  allRatings <- c()
   for(traversal in traversals){
     paths <- extractAllPaths(graph, traversal)
+    allPaths <- c(allPaths, list(paths))
   }
+  for(path in allPaths){
+    pathRating <- assignPathRating(graph, path)
+    allRatings <- c(allRatings, pathRating)
+  }
+  maxRatingPath <- allPaths[[which.max(allRatings)]]
+  print(maxRatingPath)
 }
-
-

@@ -8,6 +8,7 @@ visualiseCircos(
   sv_data,
   cnv_data = NULL,
   chromosome_selection = NULL,
+  path = NULL,
   sv_focus = "all",
   cnv_track_style = "full",
   link_color_cluster = "x"

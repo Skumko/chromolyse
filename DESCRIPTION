@@ -15,5 +15,5 @@ Imports:
     dplyr,
     tidyr,
     readxl,
-    magrittr,
+    magrittr
     

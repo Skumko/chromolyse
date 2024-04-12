@@ -25,7 +25,7 @@
 #'
 #' @export
 #'
-visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NULL, sv_focus="all", cnv_track_style="full", link_color_cluster = "x"){
+visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NULL, path = NULL, sv_focus="all", cnv_track_style="full", link_color_cluster = "x"){
 
   #create a color palette used for cluster assignment
   distinctColorPalette <- function(n) {
@@ -91,31 +91,63 @@ visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NUL
     })
   }
 
-  if(link_color_cluster == "x"){
-    # add links to represent translocations
-    for (i in 1:nrow(soma)) {
-      circlize::circos.link(
-        paste("chr", soma$Chr.x[i], sep = ""),
-        soma$Position.x[i],
-        paste("chr", soma$Chr.y[i], sep = ""),
-        soma$Position.y[i],
-        col = color_vector[soma$Cluster.x[i]]
-      )
-    }
-  }
-  else if(link_color_cluster == "y"){
-    # add links to represent translocations
-    for (i in 1:nrow(soma)) {
-      circlize::circos.link(
-        paste("chr", soma$Chr.x[i], sep = ""),
-        soma$Position.x[i],
-        paste("chr", soma$Chr.y[i], sep = ""),
-        soma$Position.y[i],
-        col = color_vector[soma$Cluster.y[i]]
-      )
-    }
-  } else{
-    stop("Incorrect link_color_cluster choice: select either `x` or `y`!")
-  }
+  if(!is.null(path)){
 
+    for (i in 1:nrow(soma)) {
+      circlize::circos.link(
+        paste0("chr", soma$Chr.x[i]),
+        soma$Position.x[i],
+        paste0("chr", soma$Chr.y[i]),
+        soma$Position.y[i],
+        col = 'grey'
+      )
+    }
+
+    for (i in seq(1, length(path), by = 2)) {
+      start_breakpoint_id <- path[[i]]
+      end_breakpoint_id <- path[[i + 1]]
+      start_split <- strsplit(start_breakpoint_id, "_")[[1]]
+      end_split <- strsplit(end_breakpoint_id, "_")[[1]]
+
+      circlize::circos.link(
+        paste0("chr", start_split[1]),
+        as.integer(start_split[3]),
+        paste0("chr", end_split[1]),
+        as.integer(end_split[3]),
+        col = 'red'
+      )
+    }
+
+  }
+  else{
+
+    if(link_color_cluster == "x"){
+      # add links to represent translocations
+      for (i in 1:nrow(soma)) {
+        circlize::circos.link(
+          paste0("chr", soma$Chr.x[i]),
+          soma$Position.x[i],
+          paste0("chr", soma$Chr.y[i]),
+          soma$Position.y[i],
+          col = color_vector[soma$Cluster.x[i]]
+        )
+      }
+    }
+    else if(link_color_cluster == "y"){
+      # add links to represent translocations
+      for (i in 1:nrow(soma)) {
+        circlize::circos.link(
+          paste0("chr", soma$Chr.x[i]),
+          soma$Position.x[i],
+          paste0("chr", soma$Chr.y[i]),
+          soma$Position.y[i],
+          col = color_vector[soma$Cluster.y[i]]
+        )
+      }
+    } else{
+      stop("Incorrect link_color_cluster choice: select either `x` or `y`!")
+    }
+  }
 }
+
+

@@ -131,7 +131,21 @@ analyzeGeneChains <- function(sourceData, minMeanRating = 5, minSupportedReads =
   ordered_indices <- order(sapply(allPathsRated, function(x) x$meanRating), decreasing = TRUE)
   allPathsRated <- allPathsRated[ordered_indices]
 
+  mutations <- NULL
+  if(length(allPathsRated)){
+    for(i in 1:length(allPathsRated)){
+      pathData <- createDataframeFromEvent(result$graph, allPathsRated[[i]])
+      pathData$pathIndex <- i
+      mutations <- rbind(mutations, pathData)
+    }
+    mutations <- mutations |> dplyr::filter(rating>= minMeanRating) |>
+      dplyr::select(rating, pathIndex, gene.x, gene.y, encode.x, encode.y,
+                    region.x, region.y, ID.x, ID.y, nodeID.x, position.x, nodeID.y, position.y) |>
+      dplyr::arrange(desc(rating))
+
+  }
+
   # Extract paths meeting the minimum translocations criterion
   #allPathsRated <- allPathsRated[unlist(lapply(allPathsRated, function(x) length(x$path) >= minNumTranslocations*2))]
-  return(list(clusteredData = clusteredDataset, graph = graph, paths = allPathsRated))
+  return(list(clusteredData = clusteredDataset, graph = graph, paths = allPathsRated, mutations = mutations))
 }

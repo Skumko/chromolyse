@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_manipulation.R
 \name{preprocessRawBattenbergFile}
 \alias{preprocessRawBattenbergFile}
-\title{Transform the Battenberg file standard format file into the required format.}
+\title{Transform the Battenberg standard format file into the required format.}
 \usage{
 preprocessRawBattenbergFile(dataset)
 }
@@ -26,7 +26,7 @@ The Battenberg file format should contain these columns:
 }
 \details{
 This function transforms the dataset by only selecting columns needed for
-CNV visualisation:
+CNV purposes (mainly visualisation):
 - `chromosome`, specifies which chromosome is concerned,
 - `start_position`, the starting position of an affected region,
 - `end_position`, the end position of an affected region,

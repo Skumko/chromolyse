@@ -4,18 +4,14 @@
 \alias{clusterData}
 \title{Cluster SV data}
 \usage{
-clusterData(dataset, algorithm = "ckmeans", max_k = 20)
+clusterData(dataset, algorithm = "ckmeans", maxK = 20)
 }
 \arguments{
 \item{dataset}{The input data.}
 
 \item{algorithm}{Algorithm used to cluster position values from the dataset.}
 
-\item{grouping_column}{Name of the column which contains chromosome assignments. This column will be used for grouping.}
-
-\item{start_position_column}{Name of the column which contains starting positions of translocations on the chromosome. These will be used for clustering.}
-
-\item{end_position_column}{Name of the column which contains end positions of translocations on the chromosome. These will be used for clustering.}
+\item{maxK}{The maximum number of clusters allowed for clustering. User definable, default set to 20.}
 }
 \value{
 original dataset with cluster labels in Cluster.x column for clustered Chr.x positions and cluster labels in Cluster.y for Chr.y positions

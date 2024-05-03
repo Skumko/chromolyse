@@ -4,12 +4,12 @@
 \alias{.clusterCkmeans}
 \title{Perform clustering using Ckmeans 1D algorithm}
 \usage{
-.clusterCkmeans(positions, k_upper = 20)
+.clusterCkmeans(positions, kUpperBound = 20)
 }
 \arguments{
 \item{positions}{explanation}
 
-\item{k_upper}{explanation}
+\item{kUpperBound}{explanation}
 }
 \value{
 return value description

@@ -2,16 +2,22 @@
 % Please edit documentation in R/data_manipulation.R
 \name{fillMissingSegments}
 \alias{fillMissingSegments}
-\title{Fill missing CNV segments}
+\title{Fill missing CNV segments.}
 \usage{
 fillMissingSegments(cnv_file)
 }
 \arguments{
-\item{cnv_file}{a source file containing CNV information.}
+\item{cnv_file}{a source file containing the CNV information. The format required is:
+- `chromosome`, specifies which chromosome is concerned,
+- `start_position`, the starting position of an affected region,
+- `end_position`, the end position of an affected region,
+- `event`, a numeric value (0,5) specifying the CNV event.
+This format can be achieved by using either manual data preprocessing or using one of the functions (`preprocessRawNexusFile`,`preprocessRawBattenbergFile`).}
 }
 \value{
 a modified CNV file
 }
 \description{
-Fill missing CNV segments
+For a correct CNV Circos visualisation, the CNV track should have no missing segments - ranges of bases where there is no information.
+If there are no such missing segments, this function returns the original file with no modifications. Otherwise new segments are generated.
 }

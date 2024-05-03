@@ -1,22 +1,19 @@
-encodeValues <- c(
-  "Intergenic",
-  "Intronic",
+values <- c(
+  "intergenic",
+  "intronic",
   "ncRNA_intronic",
   "ncRNA_exonic",
   "UTR5",
-  "Exonic",
-  "Downstream",
+  "exonic",
+  "downstream",
   "UTR3",
-  "Upstream",
-  "Upstream;downstream",
-  "Splicing",
+  "upstream",
+  "upstream;downstream",
+  "splicing",
   "ncRNA_splicing",
   "UTR5;UTR3",
-  "Exonic;splicing",
-  "ncRNA_exonic;splicing"
-)
-
-regionValues <- c(
+  "exonic;splicing",
+  "ncRNA_exonic;splicing",
   "Name=1_Active_Promoter",
   "Name=2_Weak_Promoter",
   "Name=3_Poised_Promoter",
@@ -34,89 +31,33 @@ regionValues <- c(
   "Name=15_Repetitive/CNV"
 )
 
-ratingArray <- array(NA, dim = c(length(encodeValues), length(encodeValues), length(regionValues)),
-                      dimnames = list(encodeValues, encodeValues, regionValues))
+ratingMatrix <- as.matrix(read.csv(system.file("data", "ratings_no_header.csv",package = "chromolyse"), header = F))
 
-# TODO assign path ratings
-#ratingArray <- read.csv("./misc/Data/ratings.csv")
+rownames(ratingMatrix) <- values
+colnames(ratingMatrix) <- values
 
-searchGraph <- function(graph){
-  traversals <-  list()
-  for(node in graph@nodes){
-    traversal <-  depthFirstSearch(graph, node@ID)
-    traversals <-  append(traversals, traversal)
-  }
-  return(traversals)
-}
-
-# extractAllPaths <- function(graph, dfs_traversal){
-#   paths <-  list()
-#   current_path <-  list()
-#   prev_node <-  dfs_traversal[[1]]@source_node_id
-#   curr_node <-  NULL
-#   origin_node <- prev_node
-#   for(edge in dfs_traversal){
-#     curr_node <-  edge@source_node_id
-#     if(curr_node == prev_node){
-#       current_path <- append(current_path, edge@source_breakpoint_id)
-#       current_path <- append(current_path, edge@destination_breakpoint_id)
-#       prev_node <-  edge@destination_node_id
-#     }
-#     else{
-#       paths <- c(paths, list(current_path))
-#       search <- paste0(curr_node,"_")
-#       continue_index <- grep(search, rev(current_path), fixed = T)
-#       #continue_index <- grep(search, current_path)
-#       if (length(continue_index) > 0) {
-#         index <- length(current_path) - continue_index
-#         current_path <- current_path[seq_len(index)]
-#
-#       } else {
-#         stop("This should find some match!!!")
-#         current_path <- current_path
-#       }
-#       current_path <- append(current_path, edge@source_breakpoint_id)
-#       current_path <- append(current_path, edge@destination_breakpoint_id)
-#       prev_node <- edge@destination_node_id
-#     }
-#   }
-#   return(paths)
-# }
-
-extractAllPaths <- function(graph, dfs_traversal) {
-  paths <- list()
-  current_path <- c()
-  prev_node <- dfs_traversal[[1]]@source_node_id
-  for (edge in dfs_traversal) {
-    curr_node <- edge@source_node_id
-    if (curr_node != prev_node) {
-      paths <- c(paths, list(current_path))
-      continue_index <- grep(paste0(curr_node, "_"), rev(current_path), fixed = TRUE)
-      if (length(continue_index) > 0) {
-        index <- length(current_path) - continue_index
-        current_path <- current_path[seq_len(index)]
-      } else {
-        stop("This should find some match!!!")
-      }
-    }
-    current_path <- c(current_path, edge@source_breakpoint_id, edge@destination_breakpoint_id)
-    prev_node <- edge@destination_node_id
-  }
-  return(paths)
-}
-
-
+#' Assign rating to all Edges in a path list.
+#'
+#' @param graph a Graph object from which the path was created.
+#' @param path the path to rank - a list of `Breakpoint_id`s.
+#'
+#' @return a total ranking of the path as one integer.
+#' @export
+#'
 assignPathRating <- function(graph, path){
   ratings <- list()
   totalRating <- 0
+  if(length(path) %% 2 != 0){
+    stop("Incorrect path! Path should contain even number of breakpoint IDs.")
+  }
   for (i in seq(1, length(path), by = 2)) {
     # iterate by two - start and end breakpoints
     startBreakpointId <- path[[i]]
     endBreakpointId <- path[[i + 1]]
 
     # find breakpoint objects in graph
-    startBreakpoint <-  getBreakpointByID(startBreakpointId)
-    endBreakpoint <-  getBreakpointByID(endBreakpointId)
+    startBreakpoint <-  getBreakpointByID(graph, startBreakpointId)
+    endBreakpoint <-  getBreakpointByID(graph, endBreakpointId)
 
     if(class(startBreakpoint) != "Breakpoint" | class(endBreakpoint) != "Breakpoint"){
       stop("One of the breakpoints not found: ",i)
@@ -128,26 +69,69 @@ assignPathRating <- function(graph, path){
     endRegion <-  endBreakpoint@region
 
     # find the rating
-    rating <- ratingArray[startEncode, endEncode]
+    rating <- ratingMatrix[startEncode, endEncode] + ratingMatrix[startEncode, endRegion]
+    rating <- rating + ratingMatrix[startRegion, endRegion] + ratingMatrix[startRegion, endEncode]
+    rating <- rating / 4
+
     ratings <- c(ratings, rating)
     totalRating <- totalRating + rating
   }
-  return(totalRating)
+  return(list(totalRating = totalRating, ratings = ratings))
+  #return(totalRating)
 }
 
-analyzeGeneChains <- function(source_data){
-  graph <- createGraphFromDataframe(source_data)
-  traversals <- searchGraph(graph)
+
+analyzeGeneChains <- function(sourceData, minMeanRating = 5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = 20){
+
+  # clean the dataset
+  cleanSourceData <- cleanSVDataset(sourceData, minSupportedReads = minSupportedReads, minQuality = minQuality)
+
+  if(nrow(cleanSourceData)<2){
+    stop("Filtering criteria too strict! Not enough samples for clustering.")
+
+  }
+  # cluster source_data
+  clusteredDataset <- clusterData(cleanSourceData, algorithm = clusteringAlgorithm, maxK = maxK)
+
+  # create a graph object
+  graph <- createGraphFromDataframe(clusteredDataset)
+  # run DFS for all possible starting nodes
+  traversals <- searchGraph(graph, depthLimit = pathDepthLimit)
   allPaths <- list()
   allRatings <- c()
   for(traversal in traversals){
-    paths <- extractAllPaths(graph, traversal)
-    allPaths <- c(allPaths, list(paths))
+    # extract individual paths
+    if(length(traversal)){
+      pathList <- extractAllPaths(graph, traversal)
+      allPaths <- c(allPaths, pathList)
+    }
   }
+  allPaths <- allPaths[unlist(lapply(allPaths, function(x) length(x) >= minNumTranslocations*2))]
+  # rank paths
   for(path in allPaths){
     pathRating <- assignPathRating(graph, path)
-    allRatings <- c(allRatings, pathRating)
+    allRatings <- c(allRatings, list(pathRating))
   }
-  maxRatingPath <- allPaths[[which.max(allRatings)]]
-  print(maxRatingPath)
+
+  allPathsRated <- mapply(function(path, ratings) {
+    list(
+      path = path,
+      numChromosomes = getNumChromosomes(path),
+      totalRating = ratings$totalRating,
+      meanRating = mean(unlist(ratings$ratings)),
+      maxRating = max(unlist(ratings$ratings)),
+      ratings = ratings$ratings
+    )
+  }, allPaths, allRatings, SIMPLIFY = FALSE)
+
+  # filter out paths which have less chromosomes involved than defined by minNumChromosome parameter
+  allPathsRated <- allPathsRated[unlist(lapply(allPathsRated, function(x) x$numChromosomes >= minNumChromosomes & x$meanRating >= minMeanRating))]
+
+  #order by totalRating descending
+  ordered_indices <- order(sapply(allPathsRated, function(x) x$meanRating), decreasing = TRUE)
+  allPathsRated <- allPathsRated[ordered_indices]
+
+  # Extract paths meeting the minimum translocations criterion
+  #allPathsRated <- allPathsRated[unlist(lapply(allPathsRated, function(x) length(x$path) >= minNumTranslocations*2))]
+  return(list(clusteredData = clusteredDataset, graph = graph, paths = allPathsRated))
 }

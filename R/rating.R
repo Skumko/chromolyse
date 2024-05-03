@@ -81,7 +81,7 @@ assignPathRating <- function(graph, path){
 }
 
 
-analyzeGeneChains <- function(sourceData, minMeanRating = 5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = 20){
+analyseGeneChains <- function(sourceData, minMeanRating = 5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = 20){
 
   # clean the dataset
   cleanSourceData <- cleanSVDataset(sourceData, minSupportedReads = minSupportedReads, minQuality = minQuality)

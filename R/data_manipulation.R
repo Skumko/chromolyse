@@ -1,10 +1,10 @@
 #' Read an excel file
 #'
-#' Function is a wrapper for readxl::read_excel function.
+#' Function is a wrapper for readxl::read_excel function (see\code{readxl::\link[readxl:read_excel]{read_excel function}} for details).
 #' @param filepath A path to the excel file.
-#' @param sheetname An integer value to specify which sheet will be read.
+#' @param sheetname A value to specify which sheet will be read.
 #'
-#' @return data.table with the contents of the loaded excel file.
+#' @return table with the contents of the excel file.
 #' @export
 readExcel <- function(filepath, sheetname = 2){
   snv_file <- readxl::read_excel(filepath, sheet = sheetname);
@@ -12,7 +12,7 @@ readExcel <- function(filepath, sheetname = 2){
 }
 
 
-#' Transform the Nexus file standard format file into the required format.
+#' Transform the Nexus standard format file into the required format.
 #'
 #' The Nexus file format should contain these columns:
 #' - `Chromosome.Region`
@@ -26,7 +26,7 @@ readExcel <- function(filepath, sheetname = 2){
 #' - `Count.of.Gene.Symbols`
 #'
 #' This function transforms the dataset by only selecting columns needed for
-#' CNV visualisation:
+#' CNV purposes (mainly visualisation) and using appropriate names:
 #' - `chromosome`, specifies which chromosome is concerned,
 #' - `start_position`, the starting position of an affected region,
 #' - `end_position`, the end position of an affected region,
@@ -51,7 +51,7 @@ preprocessRawNexusFile <- function(dataset){
   return(dataset)
 }
 
-#' Transform the Battenberg file standard format file into the required format.
+#' Transform the Battenberg standard format file into the required format.
 #'
 #' The Battenberg file format should contain these columns:
 #' - `chr`
@@ -65,7 +65,7 @@ preprocessRawNexusFile <- function(dataset){
 #' - `frac2_A`
 #'
 #' This function transforms the dataset by only selecting columns needed for
-#' CNV visualisation:
+#' CNV purposes (mainly visualisation) and using appropriate names:
 #' - `chromosome`, specifies which chromosome is concerned,
 #' - `start_position`, the starting position of an affected region,
 #' - `end_position`, the end position of an affected region,
@@ -89,9 +89,16 @@ preprocessRawBattenbergFile <- function(dataset){
   return(dataset)
 }
 
-#' Fill missing CNV segments
+#' Fill missing CNV segments.
 #'
-#' @param cnv_file a source file containing CNV information.
+#' For a correct CNV Circos visualisation, the CNV track should have no missing segments - ranges of bases where there is no information.
+#' If there are no such missing segments, this function returns the original file with no modifications. Otherwise new segments are generated.
+#' @param cnv_file a source file containing the CNV information. The format required is:
+#' - `chromosome`, specifies which chromosome is concerned,
+#' - `start_position`, the starting position of an affected region,
+#' - `end_position`, the end position of an affected region,
+#' - `event`, a numeric value (0,5) specifying the CNV event.
+#' This format can be achieved by using either manual data preprocessing or using one of the functions (`preprocessRawNexusFile`,`preprocessRawBattenbergFile`).
 #'
 #' @return a modified CNV file
 #' @export
@@ -147,4 +154,32 @@ fillMissingSegments <- function(cnv_file){
   final_file <- as.data.frame(lapply(final_file, unlist))
 
   return(final_file)
+}
+
+
+cleanSVDataset <- function(dataset, minSupportedReads = 3, minQuality = 70){
+  cleanDataset <- dataset |> dplyr::filter(Type == "CTX" | Type == "ITX") |> dplyr::distinct()
+  tryCatch(
+    expr = {
+      cleanDataset <- cleanDataset |> dplyr::filter(Qual >= minQuality)
+    },
+    error = function(e){
+      message('Could not filter by quality of reads. Returning dataset without this step performed...')
+      print(e)
+    }
+  )
+
+
+  tryCatch(
+    expr = {
+      #cleanDataset$Reads <- as.numeric(sapply(strsplit(cleanDataset$Split, "\\|"), function(x) x[2]))
+      #cleanDataset <- cleanDataset |> dplyr::filter(Reads >= minSupportedReads)
+      cleanDataset <- cleanDataset |> dplyr::filter(DP >= minSupportedReads)
+    },
+    error = function(e){
+      message('Could not filter by supporting reads. Returning dataset without this step performed...')
+      print(e)
+    }
+  )
+  return(cleanDataset)
 }

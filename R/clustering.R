@@ -1,68 +1,54 @@
 #' Perform clustering using Ckmeans 1D algorithm
 #'
 #'
-#' @param positions explanation
-#' @param k_upper explanation
+#' @param positions input data to cluster. This should represent a subset of positions from one chromosome.
+#' @param kUpperBound the upper limit for the K value (target number of clusters).
 #' @keywords internal
-#' @return return value description
-.clusterCkmeans <- function(positions, k_upper = 20){
-  # here, the upper bound is set using the parameter k_upper, unless the number of values in positions is less than k_upper
-  upper_bound <- min(length(unique(positions)), k_upper)
+#' @return cluster labels.
+.clusterCkmeans <- function(positions, kUpperBound = 20){
+  # here, the upper bound is set using the parameter kUpperBound, unless the number of values in positions is less than kUpperBound
+  upper_bound <- min(length(unique(positions)), kUpperBound)
   labels <- Ckmeans.1d.dp::Ckmeans.1d.dp(positions, k=c(1:upper_bound))$cluster
   return(labels)
 }
 
-#' Perform clustering using Expectation-Maximisation algorithm
+
+#' Perform clustering using the Expectation-Maximisation algorithm using a Gaussian Mixture Model.
 #'
-#' During the iteration of the EM algorithm, the log-likelihood of the data is calculated at each step.
-#' The algorithm continues iterating until the change in log-likelihood between consecutive iterations is smaller than the tolerance (`tol`).
-#' If the absolute difference in log-likelihood between two consecutive iterations falls below the tolerance value, the algorithm considers that it has converged and stops iterating.
-#' @param positions explanation
-#' @param k_upper explanation
+#' GMM used from the Mclust library, see \code{mclust::\link[mclust:Mclust]{Mclust GMM}} for details.
+#' @param positions input data to cluster. This should represent a subset of positions from one chromosome.
+#' @param kUpperBound the upper limit for the K value (target number of clusters).
 #' @keywords internal
-#' @return return value description
-.emCluster_k <- function(positions, k = 20, max_iterations = 100, tol = 1e-6){
+#' @return cluster labels.
+.clusterGMM <- function(positions, kUpperBound = 20){
+  model <- mclust::Mclust(positions, G = 1:kUpperBound)
+  if(is.null(model)){
+    return(c(1))
+  }
+  return(model$classification)
+}
 
-    # Initialize parameters randomly
-    means <- sample(positions, k)
-    weights <- rep(1 / k, k)
-    variances <- rep(var(positions), k)
 
-    # Initialize iteration counter and log-likelihood
-    iteration <- 0
-    prev_log_likelihood <- -Inf
+#' Perform clustering using Affinity Propagation algorithm.
+#'
+#' The algorithm is an implementation from the apcluster package, see \code{apcluster::\link[apcluster:apcluster]{apcluster}} for details.
+#'
+#' @param positions input data to cluster. This should represent a subset of positions from one chromosome.
+#' @return cluster labels.
+#' @export
+#'
+.clusterAP <- function(positions){
 
-    # EM algorithm loop
-    while (iteration < max_iterations) {
-      # Expectation step
-      responsibilities <- matrix(0, nrow = length(positions), ncol = k)
-      for (i in 1:k) {
-        responsibilities[, i] <- dnorm(data, mean = means[i], sd = sqrt(variances[i])) * weights[i]
-      }
-      responsibilities <- responsibilities / rowSums(responsibilities)
+  if(length(positions)<2){
+    return(c(1))
 
-      # Maximization step
-      Nk <- colSums(responsibilities)
-      weights <- Nk / length(positions)
-      means <- colSums(positions * responsibilities) / Nk
-      variances <- colSums((positions - means)^2 * responsibilities) / Nk
-
-      # Calculate log-likelihood
-      log_likelihood <- sum(log(rowSums(responsibilities * outer(weights, dnorm(data, mean = means, sd = sqrt(variances)), "*"))))
-
-      # Check convergence
-      if (abs(log_likelihood - prev_log_likelihood) < tol) {
-        break
-      }
-
-      # Update iteration counter and log-likelihood
-      iteration <- iteration + 1
-      prev_log_likelihood <- log_likelihood
-    }
-
-    # Return final parameters and cluster assignments
-    return(list(weights = weights, means = means, variances = variances, responsibilities = responsibilities))
-
+  }
+  apModel = apcluster::apcluster(apcluster::negDistMat(r=2), x=positions)
+  # Map labels in positions to index numbers
+  labels <- sapply(apcluster::labels(apModel), function(label) {
+    which(apModel@exemplars==label)
+  })
+  return(labels)
 }
 
 #' Cluster SV data
@@ -70,12 +56,10 @@
 #' Function performs clustering of SV data chromosome-wise using selected algorithm.
 #' @param dataset The input data.
 #' @param algorithm Algorithm used to cluster position values from the dataset.
-#' @param grouping_column Name of the column which contains chromosome assignments. This column will be used for grouping.
-#' @param start_position_column Name of the column which contains starting positions of translocations on the chromosome. These will be used for clustering.
-#' @param end_position_column Name of the column which contains end positions of translocations on the chromosome. These will be used for clustering.
+#' @param maxK The maximum number of clusters allowed for clustering. User definable, default set to 20.
 #' @return original dataset with cluster labels in Cluster.x column for clustered Chr.x positions and cluster labels in Cluster.y for Chr.y positions
 #' @export
-clusterData <- function(dataset, algorithm='ckmeans', max_k = 20){
+clusterData <- function(dataset, algorithm='ckmeans', maxK = 20){
 
   combined_data <- rbind(
     dataset |> dplyr::select(Chr.x, Position.x) |> dplyr::rename(Chromosome = Chr.x, Position = Position.x) |> dplyr::mutate(Type = "X"),
@@ -87,33 +71,36 @@ clusterData <- function(dataset, algorithm='ckmeans', max_k = 20){
 
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
-              dplyr::mutate(Cluster = .clusterCkmeans(Position, k_upper = max_k))
+              dplyr::mutate(Cluster = .clusterCkmeans(Position, kUpperBound = maxK))
 
           },
-          'kmeans++' = {
+          'affinity' = {
+            result <- combined_data |>
+              dplyr::group_by(Chromosome) |>
+              dplyr::mutate(Cluster = .clusterAP(Position))
 
           },
-          'expectation-max' = {
+          'gmm' = {
 
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
-              dplyr::mutate(Cluster = .clusterCkmeans(Position, k_upper = max_k))
+              dplyr::mutate(Cluster = .clusterGMM(Position, kUpperBound = maxK))
 
           },
-          'default' = {
-            "Invalid algorithm selected!"
-            return(NULL)
+          {
+            stop("Error: Wrong algorithm type selected!")
           }
   )
 
   merge_x <- result |> dplyr::filter(Type == 'X') |> dplyr::select(Chromosome, Position, Cluster)
   merge_y <- result |> dplyr::filter(Type == 'Y') |> dplyr::select(Chromosome, Position, Cluster)
+  merge_x <- merge_x |> dplyr::rename(Cluster.x = Cluster)
+  merge_y <- merge_y |> dplyr::rename(Cluster.y = Cluster)
 
-  merged_df <- merge(df, merge_y, by.x = c("Chr.y","Position.y"), by.y = c("Chromosome","Position"), all.x = TRUE) |>
-    dplyr::rename(Cluster.y = Cluster) |>
-    merge(merge_x, by.x = c("Chr.x","Position.x"), by.y = c("Chromosome","Position"), all.x = TRUE) |>
-    dplyr::rename(Cluster.x = Cluster) |>
-    dplyr::select(ID, Chr.x, Cluster.x, Position.x, Chr.y, Cluster.y, Position.y, everything())
+  merged_df <- dataset |>
+    merge(merge_y, by.x = c("Chr.y","Position.y"), by.y = c("Chromosome","Position")) |>
+    merge(merge_x, by.x = c("Chr.x","Position.x"), by.y = c("Chromosome","Position")) |>
+    dplyr::select(ID, Chr.x, Cluster.x, Position.x, Chr.y, Cluster.y, Position.y, everything()) |>
+    dplyr::distinct()
   return(merged_df)
 }
-

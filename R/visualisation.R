@@ -16,13 +16,15 @@
 #' \item `Encode.y`, end breakpoint encode (Promotor, Enhancer, Heterochrom,...),
 #'
 #' }
-#' @param sv_focus the subset of translocations to focus on: {`"itx"`, `"ctx"`, `"all"`}.
-#' @param chromosome_selection an optional vector containing a selection of chromosomes to be included in the visualisation.
 #' @param cnv_data An optional data source containing CNV information. Used to create a separate CNV track.
-#' This should follow the required format (see `preprocess_raw_nexus_file` function).
+#' This should follow the required format (see `preprocessRawNexusFile` function).
+#' @param chromosome_selection an optional vector containing a selection of chromosomes to be included in the visualisation.
+#' @param path an optional vector containing specific breakpoint which belong to a path. If this is not NULL, the default visualisation changes -
+#' all translocation link apart from the ones connecting breakpoints from the `path` attribute are gray, the path is shown in red.
+#' @param sv_focus the subset of translocations to focus on: {`"itx"`, `"ctx"`, `"all"`}.
 #' @param cnv_track_style the type of CNV track visualisation: `cnv_track_style = "full"` is default and will display the CNV baseline event (Allelic imbalance, shown in black).
 #' Use `cnv_track_style = "trim"` to not include this baseline and only show Copy number gains and losses (red and blue segments).
-#'
+#' @param link_color_cluster specifies which translocation end (translocation origin or translocation target) defines the color of the links.
 #' @export
 #'
 visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NULL, path = NULL, sv_focus="all", cnv_track_style="full", link_color_cluster = "x"){
@@ -99,7 +101,7 @@ visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NUL
         soma$Position.x[i],
         paste0("chr", soma$Chr.y[i]),
         soma$Position.y[i],
-        col = 'grey'
+        col = 'lightgrey'
       )
     }
 

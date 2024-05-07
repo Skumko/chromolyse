@@ -36,10 +36,33 @@ ratingMatrix <- as.matrix(read.csv(system.file("data", "ratings_no_header.csv",p
 rownames(ratingMatrix) <- values
 colnames(ratingMatrix) <- values
 
-#' Assign rating to all Edges in a path list.
+
+rateEdge <- function(graph, sourceBreakpointId, destinationBreakpointId){
+  sourceBreakpoint <- chromolyse::getBreakpointByID(graph,sourceBreakpointId)
+  destinationBreakpoint <- chromolyse::getBreakpointByID(graph,destinationBreakpointId)
+
+  if(class(sourceBreakpoint) != "Breakpoint" | class(destinationBreakpoint) != "Breakpoint"){
+    stop("One of the breakpoints not found: ",i)
+  }
+  # extract Encode and Region values
+  startEncode <-  sourceBreakpoint@encode
+  startRegion <-  sourceBreakpoint@region
+  endEncode <-  destinationBreakpoint@encode
+  endRegion <-  destinationBreakpoint@region
+
+  # find the rating
+  rating <- ratingMatrix[startEncode, endEncode] +
+    ratingMatrix[startEncode, endRegion] +
+    ratingMatrix[startRegion, endRegion] +
+    ratingMatrix[startRegion, endEncode]
+  rating <- rating / 4
+  return(rating)
+}
+
+#' Assign rating to a path (list of graph breakpoints).
 #'
 #' @param graph a Graph object from which the path was created.
-#' @param path the path to rank - a list of `Breakpoint_id`s.
+#' @param path the path to rank - a list of `Breakpoint_ID`s.
 #'
 #' @return a total ranking of the path as one integer.
 #' @export
@@ -52,36 +75,18 @@ assignPathRating <- function(graph, path){
   }
   for (i in seq(1, length(path), by = 2)) {
     # iterate by two - start and end breakpoints
-    startBreakpointId <- path[[i]]
-    endBreakpointId <- path[[i + 1]]
+    sourceBreakpointId <- path[[i]]
+    destinationBreakpointId <- path[[i + 1]]
 
-    # find breakpoint objects in graph
-    startBreakpoint <-  getBreakpointByID(graph, startBreakpointId)
-    endBreakpoint <-  getBreakpointByID(graph, endBreakpointId)
-
-    if(class(startBreakpoint) != "Breakpoint" | class(endBreakpoint) != "Breakpoint"){
-      stop("One of the breakpoints not found: ",i)
-    }
-    # extract Encode and Region values
-    startEncode <-  startBreakpoint@encode
-    startRegion <-  startBreakpoint@region
-    endEncode <-  endBreakpoint@encode
-    endRegion <-  endBreakpoint@region
-
-    # find the rating
-    rating <- ratingMatrix[startEncode, endEncode] + ratingMatrix[startEncode, endRegion]
-    rating <- rating + ratingMatrix[startRegion, endRegion] + ratingMatrix[startRegion, endEncode]
-    rating <- rating / 4
-
+    rating <- rateEdge(graph, sourceBreakpointId, destinationBreakpointId)
     ratings <- c(ratings, rating)
     totalRating <- totalRating + rating
   }
   return(list(totalRating = totalRating, ratings = ratings))
-  #return(totalRating)
 }
 
 
-analyseGeneChains <- function(sourceData, minMeanRating = 5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = 20){
+analyseGeneChains <- function(sourceData, minMeanRating = 4.5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = 20){
 
   # clean the dataset
   cleanSourceData <- cleanSVDataset(sourceData, minSupportedReads = minSupportedReads, minQuality = minQuality)
@@ -134,12 +139,12 @@ analyseGeneChains <- function(sourceData, minMeanRating = 5, minSupportedReads =
   mutations <- NULL
   if(length(allPathsRated)){
     for(i in 1:length(allPathsRated)){
-      pathData <- createDataframeFromEvent(result$graph, allPathsRated[[i]])
+      pathData <- createDataframeFromEvent(graph, allPathsRated[[i]])
       pathData$pathIndex <- i
       mutations <- rbind(mutations, pathData)
     }
-    mutations <- mutations |> dplyr::filter(rating>= minMeanRating) |>
-      dplyr::select(rating, pathIndex, gene.x, gene.y, encode.x, encode.y,
+    mutations <- mutations |> dplyr::filter(rating >= minMeanRating) |>
+      dplyr::select(rating, pathIndex, type,gene.x, gene.y, encode.x, encode.y,
                     region.x, region.y, ID.x, ID.y, nodeID.x, position.x, nodeID.y, position.y) |>
       dplyr::arrange(desc(rating))
 

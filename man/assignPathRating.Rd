@@ -2,18 +2,18 @@
 % Please edit documentation in R/rating.R
 \name{assignPathRating}
 \alias{assignPathRating}
-\title{Assign rating to all Edges in a path list.}
+\title{Assign rating to a path (list of graph breakpoints).}
 \usage{
 assignPathRating(graph, path)
 }
 \arguments{
-\item{graph}{a Graph object from which the path was created.}
+\item{graph}{A `Graph` object from which the path was created.}
 
-\item{path}{the path to rank - a list of `Breakpoint_id`s.}
+\item{path}{The path to rank - a list of `Breakpoint_ID`s.}
 }
 \value{
-a total ranking of the path as one integer.
+The total ranking of the path as as floating point number.
 }
 \description{
-Assign rating to all Edges in a path list.
+Assign rating to a path (list of graph breakpoints).
 }

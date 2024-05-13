@@ -7,12 +7,12 @@
 .clusterCkmeans(positions, kUpperBound = 20)
 }
 \arguments{
-\item{positions}{explanation}
+\item{positions}{input data to cluster. This should represent a subset of positions from one chromosome.}
 
-\item{kUpperBound}{explanation}
+\item{kUpperBound}{the upper limit for the K value (target number of clusters).}
 }
 \value{
-return value description
+cluster labels.
 }
 \description{
 Perform clustering using Ckmeans 1D algorithm

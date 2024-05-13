@@ -9,11 +9,11 @@ readExcel(filepath, sheetname = 2)
 \arguments{
 \item{filepath}{A path to the excel file.}
 
-\item{sheetname}{An integer value to specify which sheet will be read.}
+\item{sheetname}{A value to specify which sheet will be read.}
 }
 \value{
-data.table with the contents of the loaded excel file.
+table with the contents of the excel file.
 }
 \description{
-Function is a wrapper for readxl::read_excel function.
+Function is a wrapper for readxl::read_excel function (see\code{readxl::\link[readxl:read_excel]{read_excel function}} for details).
 }

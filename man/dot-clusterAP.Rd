@@ -4,14 +4,15 @@
 \alias{.clusterAP}
 \title{Perform clustering using Affinity Propagation algorithm.}
 \usage{
-.clusterAP(data)
+.clusterAP(positions)
 }
 \arguments{
-\item{data}{}
+\item{positions}{input data to cluster. This should represent a subset of positions from one chromosome.}
 }
 \value{
-f
+cluster labels.
 }
 \description{
-Perform clustering using Affinity Propagation algorithm.
+The algorithm is an implementation from the apcluster package, see \code{apcluster::\link[apcluster:apcluster]{apcluster}} for details.
 }
+\keyword{internal}

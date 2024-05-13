@@ -26,7 +26,7 @@ The Nexus file format should contain these columns:
 }
 \details{
 This function transforms the dataset by only selecting columns needed for
-CNV purposes (mainly visualisation):
+CNV purposes (mainly visualisation) and using appropriate names:
 - `chromosome`, specifies which chromosome is concerned,
 - `start_position`, the starting position of an affected region,
 - `end_position`, the end position of an affected region,

@@ -2,21 +2,19 @@
 % Please edit documentation in R/clustering.R
 \name{.clusterGMM}
 \alias{.clusterGMM}
-\title{Perform clustering using the Expectation-Maximisation algorithm inside a Gaussian Mixture Model.}
+\title{Perform clustering using the Expectation-Maximisation algorithm using a Gaussian Mixture Model.}
 \usage{
-.clusterGMM(data, kUpperBound = 20)
+.clusterGMM(positions, kUpperBound = 20)
 }
 \arguments{
-\item{data}{explanation}
+\item{positions}{input data to cluster. This should represent a subset of positions from one chromosome.}
 
-\item{kUpperBound}{explanation}
+\item{kUpperBound}{the upper limit for the K value (target number of clusters).}
 }
 \value{
-return value description
+cluster labels.
 }
 \description{
-During the iteration of the EM algorithm, the log-likelihood of the data is calculated at each step.
-The algorithm continues iterating until the change in log-likelihood between consecutive iterations is smaller than the tolerance (`tol`).
-If the absolute difference in log-likelihood between two consecutive iterations falls below the tolerance value, the algorithm considers that it has converged and stops iterating.
+GMM used from the Mclust library, see \code{mclust::\link[mclust:Mclust]{Mclust GMM}} for details.
 }
 \keyword{internal}

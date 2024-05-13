@@ -34,9 +34,8 @@
 #' The algorithm is an implementation from the apcluster package, see \code{apcluster::\link[apcluster:apcluster]{apcluster}} for details.
 #'
 #' @param positions input data to cluster. This should represent a subset of positions from one chromosome.
+#' @keywords internal
 #' @return cluster labels.
-#' @export
-#'
 .clusterAP <- function(positions){
 
   if(length(positions)<2){
@@ -59,7 +58,7 @@
 #' @param maxK The maximum number of clusters allowed for clustering. User definable, default set to 20.
 #' @return original dataset with cluster labels in Cluster.x column for clustered Chr.x positions and cluster labels in Cluster.y for Chr.y positions
 #' @export
-clusterData <- function(dataset, algorithm='ckmeans', maxK = 20){
+clusterData <- function(dataset, algorithm="ckmeans", maxK = 20){
 
   combined_data <- rbind(
     dataset |> dplyr::select(Chr.x, Position.x) |> dplyr::rename(Chromosome = Chr.x, Position = Position.x) |> dplyr::mutate(Type = "X"),
@@ -67,20 +66,20 @@ clusterData <- function(dataset, algorithm='ckmeans', maxK = 20){
   )
 
   switch (algorithm,
-          'ckmeans' = {
+          "ckmeans" = {
 
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
               dplyr::mutate(Cluster = .clusterCkmeans(Position, kUpperBound = maxK))
 
           },
-          'affinity' = {
+          "affinity" = {
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
               dplyr::mutate(Cluster = .clusterAP(Position))
 
           },
-          'gmm' = {
+          "gmm" = {
 
             result <- combined_data |>
               dplyr::group_by(Chromosome) |>
@@ -92,8 +91,8 @@ clusterData <- function(dataset, algorithm='ckmeans', maxK = 20){
           }
   )
 
-  merge_x <- result |> dplyr::filter(Type == 'X') |> dplyr::select(Chromosome, Position, Cluster)
-  merge_y <- result |> dplyr::filter(Type == 'Y') |> dplyr::select(Chromosome, Position, Cluster)
+  merge_x <- result |> dplyr::filter(Type == "X") |> dplyr::select(Chromosome, Position, Cluster)
+  merge_y <- result |> dplyr::filter(Type == "Y") |> dplyr::select(Chromosome, Position, Cluster)
   merge_x <- merge_x |> dplyr::rename(Cluster.x = Cluster)
   merge_y <- merge_y |> dplyr::rename(Cluster.y = Cluster)
 

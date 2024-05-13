@@ -37,6 +37,17 @@ rownames(ratingMatrix) <- values
 colnames(ratingMatrix) <- values
 
 
+#' Assing rating to an edge.
+#'
+#' Function assigns rating to an arbitrary edge in a graph network generated from structural variation data.
+#' The edge represents a translocation, defined by origin and target breakpoints and their properties.
+#'
+#' @param graph The graph network object `Graph` which should contain the edge.
+#' @param sourceBreakpointId The string identificator of translocation origin breakpoint.
+#' @param destinationBreakpointId The string identificator of translocation target breakpoint.
+#'
+#' @return The rating of the edge as a floating point value.
+#' @export
 rateEdge <- function(graph, sourceBreakpointId, destinationBreakpointId){
   sourceBreakpoint <- chromolyse::getBreakpointByID(graph,sourceBreakpointId)
   destinationBreakpoint <- chromolyse::getBreakpointByID(graph,destinationBreakpointId)
@@ -61,12 +72,11 @@ rateEdge <- function(graph, sourceBreakpointId, destinationBreakpointId){
 
 #' Assign rating to a path (list of graph breakpoints).
 #'
-#' @param graph a Graph object from which the path was created.
-#' @param path the path to rank - a list of `Breakpoint_ID`s.
+#' @param graph A `Graph` object from which the path was created.
+#' @param path The path to rank - a list of `Breakpoint_ID`s.
 #'
-#' @return a total ranking of the path as one integer.
+#' @return The total ranking of the path as as floating point number.
 #' @export
-#'
 assignPathRating <- function(graph, path){
   ratings <- list()
   totalRating <- 0
@@ -86,7 +96,43 @@ assignPathRating <- function(graph, path){
 }
 
 
-analyseGeneChains <- function(sourceData, minMeanRating = 4.5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = 20){
+#' Identify structural rearrangement events from the source data.
+#'
+#' The function takes in the source structural variation data, performs necessary preprocessing,
+#' and using graph network search identifies potential massive structural rearrangement events
+#' based on the defined criteria.
+#'
+#' @param sourceData The structural variation dataset.
+#' @param cnvData Optional CNV data used in visualisation.
+#' @param minMeanRating The threshold for the minimum mean rating of identified paths. For example, setting `minMeanRating=4`,
+#' the function only returns identified paths which have mean rating 4 and higher.
+#' @param minSupportedReads The threshold for the minimum number of supporting reads for a translocation. Used in preprocessing, see `cleanSVDataset` function.
+#' @param minQuality The threshold for the minimum quality of a translocation. Used in preprocessing, see also `cleanSVDataset` function.
+#' @param clusteringAlgorithm The clustering algorithm used for clustering translocation breakpoints. One of `["ckmeans", "gmm", "affinity"]` values accepted. See `clusterData` function.
+#' @param maxK The upper threshold for selecting the optimal number of clusters during breakpoint clustering. See `clusterData` function.
+#' @param minNumTranslocations The threshold for the minimum number of translocations in a path. For example, setting `minNumTranslocations=10`,
+#'  the function only returns identified paths which contain 10 or more translocations.
+#' @param minNumChromosomes The threshold for the minimum number of chromosomes involved in a path. For example, setting `minNumChromosomes=5`,
+#'  the function only returns identified paths which contain translocation between 5 or more chromosomes.
+#' @param pathDepthLimit The upper boundary for the depth of a path, see `depthFirstSearch` function.
+#'
+#' @return A list containing the results of analysis:
+#' \itemize{
+#' \item `clusteredData`, the source dataset annotated with assigned cluster labels,
+#' \item `graph`, a `Graph` type object generated from the source data,
+#' \item `events`, a list of identified chains/paths which represent potential events of massive structural rearrangement. Each event contains:
+#' \itemize{
+#' \item `path`, ,
+#' \item `totalRating`, ,
+#' \item `meanRating`, ,
+#' \item `maxRating`, ,
+#' \item `numChromosomes`, ,
+#' },
+#' \item `mutations`, a concatenated dataset of translocations that are part of individual identified paths,
+#' \item `allPaths`, a concatenated list of all paths, represented by origin and target breakpoint IDs. Used for visualisation.
+#' }
+#' @export
+analyseGeneChains <- function(sourceData, cnvData = NULL, minMeanRating = 4.5, minSupportedReads = 3, minQuality = 70, clusteringAlgorithm = "ckmeans", maxK = 20, minNumTranslocations = 7, minNumChromosomes = 3, pathDepthLimit = NULL){
 
   # clean the dataset
   cleanSourceData <- cleanSVDataset(sourceData, minSupportedReads = minSupportedReads, minQuality = minQuality)
@@ -150,7 +196,29 @@ analyseGeneChains <- function(sourceData, minMeanRating = 4.5, minSupportedReads
 
   }
 
+  pathVisualisation <- NULL
+
+  if(length(allPathsRated)>0){
+    pathVisualisation <- unlist(lapply(allPathsRated, function(x) x$path))
+    print("Visualising all identified events...")
+    if(!is.null(cnvData)){
+      if(length(names(cnvData)) == 4 && all(names(cnvData) == c("chromosome", "start_position","end_position","event"))){
+        visualiseCircos(sv_data = clusteredDataset, cnv_data = cnvData, path = pathVisualisation, sv_focus = "ctx")
+      }
+      else{
+        warning("CNV data not in correct format! Skipping CNV track...")
+        visualiseCircos(sv_data = clusteredDataset, path = pathVisualisation, sv_focus = "ctx")
+      }
+    }
+    else{
+      visualiseCircos(sv_data = clusteredDataset, path = pathVisualisation, sv_focus = "ctx")
+    }
+  }
+  else{
+    print("No events were identified.")
+  }
+
   # Extract paths meeting the minimum translocations criterion
   #allPathsRated <- allPathsRated[unlist(lapply(allPathsRated, function(x) length(x$path) >= minNumTranslocations*2))]
-  return(list(clusteredData = clusteredDataset, graph = graph, paths = allPathsRated, mutations = mutations))
+  return(list(clusteredData = clusteredDataset, graph = graph, events = allPathsRated, mutations = mutations, allPaths = pathVisualisation))
 }

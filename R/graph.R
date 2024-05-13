@@ -1,16 +1,12 @@
-#' Title
+#' Breakpoint class
 #'
-#' @slot ID character.
-#' @slot node_id character.
-#' @slot position integer.
-#' @slot gene character.
-#' @slot encode character.
-#' @slot region character.
-#'
-#' @return
+#' @slot ID unique identifier. Format is `[Chromosome]_[Cluster]_[Position]`.
+#' @slot node_id the node this breakpoint belongs to. See \link[chromolyse]{Node}.
+#' @slot position the position of breakpoint on the chromosome.
+#' @slot gene a string representing which gene the breakpoint is on.
+#' @slot encode the encode value of the breakpoint.
+#' @slot region the region value of the breakpoint. May also be called class in SV data.
 #' @export
-#'
-#' @examples
 setClass("Breakpoint",
          representation(
            ID = "character",
@@ -23,14 +19,23 @@ setClass("Breakpoint",
 )
 setMethod("initialize", "Breakpoint", function(.Object, node_id, position, gene, encode, region) {
   .Object@ID <- paste(node_id, position, sep = "_")
-  .Object@node_id <- node_id
+  .Object@node_id <- as.character(node_id)
   .Object@position <- as.integer(position)
-  .Object@gene <- gene
-  .Object@encode <- encode
-  .Object@region <- region
+  .Object@gene <- as.character(gene)
+  .Object@encode <- as.character(encode)
+  .Object@region <- as.character(region)
   .Object
 })
 
+#' Node class
+#'
+#'Represents a node in the graph network.
+#' @slot ID unique identifier. Format is `[chromosome]_[cluster]`.
+#' @slot chromosome which chromosome the node is on.
+#' @slot cluster the cluster label assigned.
+#' @slot breakpoints a list of `Breakpoints` belonging to this node.
+#' @slot neighbours a list of `Breakpoints` that are the destination breakpoint in translocations which contain this node's translocations as start breakpoints.
+#' @export
 setClass("Node",
          representation(
            ID = "character",
@@ -42,14 +47,13 @@ setClass("Node",
 )
 setMethod("initialize", "Node", function(.Object, chromosome, cluster) {
   .Object@ID <- paste(chromosome, cluster, sep = "_")
-  .Object@chromosome <- chromosome
+  .Object@chromosome <- as.character(chromosome)
   .Object@cluster <- as.integer(cluster)
   .Object@breakpoints <- list()
   .Object@neighbours <- list()
   .Object
 })
 
-# Method to add a position to a Node
 setGeneric("addBreakpoint", function(object, value) standardGeneric("addBreakpoint"))
 setMethod("addBreakpoint", "Node", function(object, value) {
 
@@ -60,7 +64,6 @@ setMethod("addBreakpoint", "Node", function(object, value) {
   object
 })
 
-# Method to add a neighbour to a Node, checking for Node type
 setGeneric("addNeighbour", function(object, neighbour_id) standardGeneric("addNeighbour"))
 setMethod("addNeighbour", "Node", function(object, neighbour_id) {
 
@@ -73,6 +76,21 @@ setMethod("addNeighbour", "Node", function(object, neighbour_id) {
   object
 })
 
+#' Edge class
+#'
+#'Represents an edge in the graph network. Also represents the translocation between two `Breakpoint` objects.
+#' @slot source_breakpoint_id `Breakpoint` ID of the start breakpoint in the translocation.
+#' @slot source_node_id `Node` ID of the start breakpoint in the translocation.
+#' @slot source_chromosome chromosome which the start breakpoint belongs to.
+#' @slot source_cluster cluster which the start breakpoint has been assigned.
+#' @slot source_position start breakpoint position.
+#' @slot destination_breakpoint_id `Breakpoint` ID of the end breakpoint in the translocation.
+#' @slot destination_node_id ID of the end breakpoint in the translocation.
+#' @slot destination_chromosome chromosome which the end breakpoint belongs to.
+#' @slot destination_cluster cluster which the end breakpoint has been assigned.
+#' @slot destination_position end breakpoint position.
+#' @slot edge_type type of translocation: [`ITX`,`CTX`].
+#' @export
 setClass("Edge",
          representation(
            source_breakpoint_id = "character",
@@ -108,6 +126,13 @@ setMethod("initialize", "Edge", function(.Object, source_breakpoint_id, destinat
 })
 
 
+#' Check if `Edge` is in a list of edges.
+#'
+#' @param edge_list the list of edges.
+#' @param target_edge the `Edge` to search for.
+#'
+#' @return boolean whether the `Edge` was found.
+#' @export
 containsEdge <- function(edge_list, target_edge){
   contains_edge <- FALSE
   for(edge in edge_list){
@@ -121,6 +146,13 @@ containsEdge <- function(edge_list, target_edge){
   return(contains_edge)
 }
 
+#' Graph class
+#'
+#' Represents the graph network as a list of nodes and a list of edges.
+#'
+#' @slot nodes list of `Node` objects.
+#' @slot edges list of `Edge` objects.
+#' @export
 setClass("Graph",
          representation(
            nodes = "list",
@@ -133,7 +165,6 @@ setMethod("initialize", "Graph", function(.Object, nodes = list(), edges = list(
   .Object
 })
 
-# Method to add a Node object to the Graph
 setGeneric("addNode", function(object, node) standardGeneric("addNode"))
 setMethod("addNode", "Graph", function(object, node) {
   # Check if the node is of class Node
@@ -153,7 +184,6 @@ setMethod("addNode", "Graph", function(object, node) {
   object
 })
 
-# Method to add an Edge object to the Graph
 setGeneric("addEdge", function(object, edge) standardGeneric("addEdge"))
 setMethod("addEdge", "Graph", function(object, edge) {
   # Check if the edge is of class Edge
@@ -161,20 +191,11 @@ setMethod("addEdge", "Graph", function(object, edge) {
     stop("Argument 'edge' must be of class 'Edge'")
   }
 
-  # Check if edge already exists (considering both directions)
-  #existing_edges <- lapply(object@edges, function(e) c(e@source_breakpoint_id, e@destination_breakpoint_id))
-  #existing_edges <- unique(unlist(existing_edges))
-  #if (length(existing_edges) > 0 & edge@source_breakpoint_id %in% existing_edges & edge@destination_breakpoint_id %in% existing_edges) {
-  #  warning("Edge already exists between", edge@source_breakpoint_id, "and", edge@destination_breakpoint_id, ", skipping addition.")
-  #  return(object)
-  #}
-
   # Add the edge to the list of edges in the Graph
   object@edges[[length(object@edges) + 1]] <- edge
   object
 })
 
-# Method to check if a node with specific ID exists in the graph, returning node or FALSE
 setGeneric("hasNode", function(object, node_id) standardGeneric("hasNode"))
 setMethod("hasNode", "Graph", function(object, node_id) {
   found_node <- NULL
@@ -197,6 +218,11 @@ setMethod("updateNode", "Graph", function(object, node_id, new_node) {
     }
 })
 
+#' Read input data and create a `Graph` object from it.
+#'
+#' @param dataframe the input dataframe of translocations.
+#' @return a `Graph` object
+#' @export
 createGraphFromDataframe <- function(dataframe) {
   # Initialize empty graph, nodes, breakpoints, and edges lists
   graph <- new("Graph", nodes = list(), edges = list())
@@ -274,13 +300,13 @@ createGraphFromDataframe <- function(dataframe) {
   return(graph)
 }
 
-findClosestNode <- function(edge_list, chromosome, position) {
-  chromosome_filter <- edge_list[sapply(edge_list, function(x) x@source_chromosome == chromosome)]
-  positions_list <- sapply(chromosome_filter, function(n) n@source_position)
-  closest_node <- chromosome_filter[[which.min(abs(positions_list - position))]]@source_node_id
-  return(closest_node)
-}
 
+#' Retrieve a `Breakpoint` object by its `ID`
+#'
+#' @param graph the graph in which the `Breakpoint` should exist.
+#' @param breakpoint the `Breakpoint` ID. Format is `[Chromosome]_[Cluster]_[Position]`.
+#' @return the matching `Breakpoint` object if exists else `NULL`.
+#' @export
 getBreakpointByID <- function(graph, breakpoint){
   if (!is.character(breakpoint)) {
     warning("Invalid input. Expected a character.")
@@ -311,7 +337,17 @@ getBreakpointByID <- function(graph, breakpoint){
   }
 }
 
-depthFirstSearch <- function(graph, curr_node_id, curr_path = NULL, depth = 0, depthLimit = 20) {
+#' Perform Depth-First Search.
+#'
+#' @param graph `Graph` object to search.
+#' @param curr_node_id `Node` ID to start from. The algorithm is recursive and will use this parameter to modify the current node.
+#' @param curr_path a list of `Edge` objects representing traversal progress. Should stay NULL when calling.
+#' @param depth the depth of traversal. Should stay 0 when calling.
+#' @param depthLimit an upper boundary restricting the traversal depth.
+#' @return a list of `Edge` objects in order of traversal. This can be used to extract individual paths using the `extractAllPaths` function.
+#' @export
+
+depthFirstSearch <- function(graph, curr_node_id, curr_path = NULL, depth = 0, depthLimit = NULL) {
 
   # initialize path if empty
   if (is.null(curr_path)) {
@@ -354,16 +390,15 @@ depthFirstSearch <- function(graph, curr_node_id, curr_path = NULL, depth = 0, d
   return(curr_path)
 }
 
-#' Extract exact paths from a traversal list generated by Depth-first search.
+#' Extract exact paths from a traversal list generated by Depth-First Search (see \link[chromolyse]{depthFirstSearch}).
 #'
+#' The function returns a list of individual paths. The list contains Breakpoint IDs, always beginning with the starting node and organized in pairs - odd indexes are starting positions of an edge, even positions are end positions of an edge.
+#' The length of such list of paths should hence always be even.
 #' @param graph the graph on which the search has been performed.
-#' @param dfs_traversal a sequence of nodes visited in a list.
+#' @param dfs_traversal a sequence (list) of `Edge` objects returned by calling the `depthFirstSearch`.
 #'
 #' @return a list of all paths.
-#' The list contains Breakpoint IDs, always beginning with the starting node and organized in pairs - odd indexes are starting positions of an edge, even positions are end positions of an edge.
-#' The length of such list of paths should hence always be even.
 #' @export
-#'
 extractAllPaths <- function(graph, dfs_traversal) {
   paths <- list()
   current_path <- c()
@@ -400,9 +435,8 @@ extractAllPaths <- function(graph, dfs_traversal) {
 #'
 #' @param graph the graph to search.
 #'
-#' @return a list of "traversals", a sequence of nodes visited in a list, for all nodes
+#' @return a list of "traversals", which is a list of `Edge` objects in order they were traversed, for all nodes. See \link[chromolyse]{depthFirstSearch}.
 #' @export
-#'
 searchGraph <- function(graph, depthLimit = 20){
   traversals <-  list()
   for(node in graph@nodes){
@@ -412,6 +446,13 @@ searchGraph <- function(graph, depthLimit = 20){
   return(traversals)
 }
 
+#' Extract information from identified paths to a data table.
+#'
+#' @param graph the graph used for event identification
+#' @param event the event object = a list generated by the `\link[chromolyse]{analyseGeneChains}` function.
+#'
+#' @return a data table containing all translocations present in the event.
+#' @export
 createDataframeFromEvent <- function(graph, event){
 
   columnNames <- c("ID.x","nodeID.x","position.x","gene.x","encode.x","region.x",
@@ -449,6 +490,13 @@ createDataframeFromEvent <- function(graph, event){
 
 }
 
+#' Transform a list of `Breakpoint` object IDs into a dataframe.
+#'
+#' @param graph a `Graph` object. Used to extract `Breakpoint` objects by their IDs.
+#' @param path a list of `Breakpoint` object IDs.
+#'
+#' @return a data table with all translocations and their respective attributes.
+#' @export
 createDataframeFromPath <- function(graph, path){
 
   columnNames <- c("ID.x","nodeID.x","position.x","gene.x","encode.x","region.x",
@@ -483,6 +531,12 @@ createDataframeFromPath <- function(graph, path){
 
 }
 
+#' Extract number of chromosomes from a list of `Breakpoint` IDs representing a path.
+#'
+#' @param path a list of `Breakpoint` IDs. Likely a result of `extractAllPaths` function.
+#'
+#' @return an integer representing the number of chromosomes the `path` involves.
+#' @export
 getNumChromosomes <- function(path) {
   # Function to extract chromosome number from breakpoint identification string
   extract_chromosome <- function(string) {
@@ -497,4 +551,22 @@ getNumChromosomes <- function(path) {
   num_unique_chromosomes <- length(unique(chromosomes))
 
   return(num_unique_chromosomes)
+}
+
+
+#' Transform `Graph` nodes into an adjancency matrix.
+#'
+#' The function iterates over the list of `Edge` objects in `graph@edges` and accumulates the total rating of all translocations to a combination of start and destination `Node` IDs.
+#' @param graph the `Graph` object from which the matrix will be created.
+#'
+#' @return the adjacency matrix. Each cell has the sum of all translocation ratings.
+#' @export
+getAdjacencyMatrix <- function(graph){
+  nodeNames <- lapply(graph@nodes, function(x) x@ID)
+  adj_matrix <- matrix(0, nrow = length(graph@nodes), ncol = length(graph@nodes), dimnames = list(nodeNames, nodeNames))
+  for (edge in graph@edges) {
+    rating <- chromolyse::rateEdge(graph, edge@source_breakpoint_id, edge@destination_breakpoint_id)
+    adj_matrix[edge@source_node_id, edge@destination_node_id] <- adj_matrix[edge@source_node_id, edge@destination_node_id] + rating
+  }
+  return(adj_matrix)
 }

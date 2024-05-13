@@ -157,6 +157,16 @@ fillMissingSegments <- function(cnv_file){
 }
 
 
+#' Filter a structural variation dataset
+#'
+#' For the purposes of event identification, only certain structural variants are viable.
+#' The function filters a dataset to contain only such variants.
+#' @param dataset the dataset to filter
+#' @param minSupportedReads the threshold value for minimum number of supporting reads for a translocation. Should be provided in the `DP` column.
+#' @param minQuality the threshold value for minimum quality of translocations. Should be provided in the `Qual` column.
+#'
+#' @return the filtered dataset only containing translocations with the required properties.
+#' @export
 cleanSVDataset <- function(dataset, minSupportedReads = 3, minQuality = 70){
   cleanDataset <- dataset |> dplyr::filter(Type == "CTX" | Type == "ITX") |> dplyr::distinct()
   tryCatch(
@@ -164,21 +174,20 @@ cleanSVDataset <- function(dataset, minSupportedReads = 3, minQuality = 70){
       cleanDataset <- cleanDataset |> dplyr::filter(Qual >= minQuality)
     },
     error = function(e){
-      message('Could not filter by quality of reads. Returning dataset without this step performed...')
+      message('Could not filter by quality of reads! Make sure `Qual` column is present')
       print(e)
+      return(NULL)
     }
   )
 
-
   tryCatch(
     expr = {
-      #cleanDataset$Reads <- as.numeric(sapply(strsplit(cleanDataset$Split, "\\|"), function(x) x[2]))
-      #cleanDataset <- cleanDataset |> dplyr::filter(Reads >= minSupportedReads)
       cleanDataset <- cleanDataset |> dplyr::filter(DP >= minSupportedReads)
     },
     error = function(e){
-      message('Could not filter by supporting reads. Returning dataset without this step performed...')
+      message('Could not filter by supporting reads! Make sure `DP` column is present')
       print(e)
+      return(NULL)
     }
   )
   return(cleanDataset)

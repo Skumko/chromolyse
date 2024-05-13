@@ -94,15 +94,24 @@ visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NUL
   }
 
   if(!is.null(path)){
-
     for (i in 1:nrow(soma)) {
-      circlize::circos.link(
-        paste0("chr", soma$Chr.x[i]),
-        soma$Position.x[i],
-        paste0("chr", soma$Chr.y[i]),
-        soma$Position.y[i],
-        col = 'lightgrey'
+      skip_to_next <- FALSE
+      tryCatch(
+        expr = {
+          circlize::circos.link(
+            paste0("chr", soma$Chr.x[i]),
+            soma$Position.x[i],
+            paste0("chr", soma$Chr.y[i]),
+            soma$Position.y[i],
+            col = "#CCCCCC4D"
+          )
+        },
+        error = function(e){
+          skip_to_next <<- TRUE
+        }
       )
+
+      if(skip_to_next) { next }
     }
 
     for (i in seq(1, length(path), by = 2)) {
@@ -110,16 +119,24 @@ visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NUL
       end_breakpoint_id <- path[[i + 1]]
       start_split <- strsplit(start_breakpoint_id, "_")[[1]]
       end_split <- strsplit(end_breakpoint_id, "_")[[1]]
-
-      circlize::circos.link(
-        paste0("chr", start_split[1]),
-        as.integer(start_split[3]),
-        paste0("chr", end_split[1]),
-        as.integer(end_split[3]),
-        col = 'red'
+      skip_to_next <- FALSE
+      tryCatch(
+        expr = {
+          circlize::circos.link(
+            paste0("chr", start_split[1]),
+            as.integer(start_split[3]),
+            paste0("chr", end_split[1]),
+            as.integer(end_split[3]),
+            col = 'red'
+          )
+        },
+        error = function(e){
+          skip_to_next <<- TRUE
+        }
       )
-    }
 
+      if(skip_to_next) { next }
+    }
   }
   else{
 
@@ -151,5 +168,3 @@ visualiseCircos <- function(sv_data, cnv_data = NULL, chromosome_selection = NUL
     }
   }
 }
-
-

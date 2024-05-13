@@ -1,10 +1,10 @@
 Package: chromolyse
 Type: Package
-Title: Chromotripsis and Chromoplexy analysis
-Version: 0.0.1
+Title: Chromothripsis and Chromoplexy analysis
+Version: 1.0.0
 Author: Pavol Belej
 Maintainer: The package maintainer <xbelej@stuba.sk>
-Description: Functions to support more efficient and complex analysis of tumour genome data with focus on chromotripsis and chromoplexy events.  
+Description: Functions to support more efficient and complex analysis of tumour genome data with focus on chromothripsis and chromoplexy events.  
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.1
